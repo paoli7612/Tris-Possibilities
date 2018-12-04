@@ -1,0 +1,159 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <conio.h>
+
+#define WIDTH 7
+#define HEIGHT 6
+
+struct Node{
+	int mat[WIDTH][HEIGHT];
+	int turn;
+	int tot;
+	Node* back;
+	Node* next[7];	
+};
+
+void show_mat(int mat[WIDTH][HEIGHT]){
+	for (int y=0; y<HEIGHT; y++){
+		for (int x=0; x<WIDTH; x++){
+			printf("%d", mat[x][y]);
+		}
+		printf("\n");
+	}
+}
+
+int get(int mat[WIDTH][HEIGHT], int x, int y){
+	if (0 <= x && x < WIDTH)
+		if (0 <= y && y < HEIGHT)
+			return mat[x][y];
+	return 0;
+}
+
+void set(int mat[WIDTH][HEIGHT], int x, int y, int v){
+	if (0 <= x && x < WIDTH)
+		if (0 <= y && y < HEIGHT)
+			mat[x][y] = v;
+}
+
+bool empty(int mat[WIDTH][HEIGHT], int x, int y){
+	return mat[x][y] == 0;
+}
+
+int get_y(int mat[WIDTH][HEIGHT], int x){
+	for (int y=HEIGHT-1; y>=0; y--)
+		if (empty(mat, x, y))
+			return y;
+}
+
+bool control(int mat[WIDTH][HEIGHT]){
+	// PERPENDICULAR
+	for (int i=0; i<7; i++){
+		int a = 0, b = 0;
+		for (int j=0; j<7; j++){
+			if (get(mat, i, j) == get(mat, i, j+1) && get(mat, i, j) != 0)
+				a++; else a = 0;
+			if (get(mat, j, i) == get(mat, j+1, i) && get(mat, j, i) != 0)
+				b++; else b = 0;
+			if (a == 3 || b == 3)
+				return true;
+		}
+	}
+	// DIAGONALS 
+	for (int o=0; o<7; o++){
+		int a = 0, b = 0;
+		int c = 0, d = 0; 
+		for (int p=0; p<7; p++){
+			if (get(mat, p+o, p) == get(mat, p+o+1, p+1) &&	get(mat, p+o, p) != 0)
+				a++; else a = 0;
+			if (get(mat, p, p+o) == get(mat, p+1, p+o+1) &&	get(mat, p, p+o) != 0)
+				b++; else b = 0;
+			if (get(mat, -p+o, p) == get(mat, -p+o-1, p+1) && get(mat, -p+o, p) != 0)
+				c++; else c = 0;
+			if (get(mat, 6-p, p+o) == get(mat, 6-p-1, p+o+1) &&	get(mat, 6-p, p+o) != 0)
+				d++; else d = 0;
+			if (a == 3 || b == 3 || c == 3 || d == 3)
+				return true;
+		}
+	}	
+}
+
+bool choice(Node* node, int x){
+	if (node->tot > 5)
+		return false;
+	if (control(node->mat))
+		return false;
+	if (!empty(node->mat, x, 0))
+		return false;
+	else {	
+		int y = get_y(node->mat, x);
+		for (int n=0; n<WIDTH; n++){
+			Node* newNode = new Node();
+			newNode->tot = node->tot + 1;
+			newNode->turn = node->turn%2+1;
+			newNode->back = node;
+			node->next[n] = newNode;
+			// copy mat
+			for (int y=0; y<HEIGHT; y++)
+				for (int x=0; x<WIDTH; x++)
+					newNode->mat[x][y] = node->mat[x][y];		
+			set(newNode->mat, x, y, newNode->turn);
+			choice(newNode, n);
+		}
+	}
+}
+
+void write_node(FILE *f, Node* node){
+	if (node == NULL) return;
+	for (int y=0; y<HEIGHT; y++){
+		for (int x=0; x<WIDTH; x++){
+			fprintf(f, "%d", node->mat[x][y]);
+		}
+		fprintf(f, " ");
+	}
+	if (control(node->mat))
+		fprintf(f, "Winner\n");
+	else
+		fprintf(f, "\n");
+	for (int i=0; i<7; i++){
+		write_node(f, node->next[i]);
+	}
+}
+
+void write(Node* head){
+	FILE *f = fopen("file.txt", "w");
+	if (f == NULL)
+	{
+	    printf("Error opening file!\n");
+	    exit(1);
+	}
+	write_node(f, head);	
+	fclose(f);
+}
+
+int main(){
+	int argv[] = {0,0,0,0,0,0,0,
+					0,0,0,0,0,0,0,
+					0,0,0,0,0,0,0,
+					0,0,0,0,0,0,0,
+					0,0,0,0,0,0,0,
+					0,0,0,0,0,0,0,};
+										
+	Node* head = new Node();
+	head->turn = 2;
+	head->tot = 0;
+	
+	int p = 0;
+	for (int y=0; y<HEIGHT; y++){
+		for (int x=0; x<WIDTH; x++){
+			head->mat[x][y] = argv[p];
+			p++;
+		}
+	}
+	
+	
+	choice(head, 0);
+	write(head);
+	
+	
+	return 0;	
+}
